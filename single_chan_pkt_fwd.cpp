@@ -141,6 +141,8 @@ char platform[24] ;    /* platform definition */
 char email[40] ;       /* used for contact email */
 char description[64] ; /* used for free form description */
 
+uint8_t gateway_id[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}; /* used for gateway eui*/
+
 // Set spreading factor (SF7 - SF12), &nd  center frequency
 // Overwritten by the ones set in global_conf.json
 SpreadingFactor_t sf = SF7;
@@ -449,14 +451,14 @@ void SendStat()
   status_report[0] = PROTOCOL_VERSION;
   status_report[3] = PKT_PUSH_DATA;
 
-  status_report[4] = (unsigned char)ifr.ifr_hwaddr.sa_data[0];
-  status_report[5] = (unsigned char)ifr.ifr_hwaddr.sa_data[1];
-  status_report[6] = (unsigned char)ifr.ifr_hwaddr.sa_data[2];
-  status_report[7] = 0xFF;
-  status_report[8] = 0xFF;
-  status_report[9] = (unsigned char)ifr.ifr_hwaddr.sa_data[3];
-  status_report[10] = (unsigned char)ifr.ifr_hwaddr.sa_data[4];
-  status_report[11] = (unsigned char)ifr.ifr_hwaddr.sa_data[5];
+  status_report[4] = (unsigned char)gateway_id[0];
+  status_report[5] = (unsigned char)gateway_id[1];
+  status_report[6] = (unsigned char)gateway_id[2];
+  status_report[7] = (unsigned char)gateway_id[3];
+  status_report[8] = (unsigned char)gateway_id[4];
+  status_report[9] = (unsigned char)gateway_id[5];
+  status_report[10] = (unsigned char)gateway_id[6];
+  status_report[11] = (unsigned char)gateway_id[7];
 
   /* start composing datagram with the header */
   uint8_t token_h = (uint8_t)rand(); /* random token */
@@ -570,15 +572,16 @@ bool Receivepacket()
       //*(uint32_t *)(buff_up + 4) = net_mac_h; 
       //*(uint32_t *)(buff_up + 8) = net_mac_l;
 
-      buff_up[4] = (uint8_t)ifr.ifr_hwaddr.sa_data[0];
-      buff_up[5] = (uint8_t)ifr.ifr_hwaddr.sa_data[1];
-      buff_up[6] = (uint8_t)ifr.ifr_hwaddr.sa_data[2]; 
-      buff_up[7] = 0xFF;
-      buff_up[8] = 0xFF;
-      buff_up[9] = (uint8_t)ifr.ifr_hwaddr.sa_data[3];
-      buff_up[10] = (uint8_t)ifr.ifr_hwaddr.sa_data[4];
-      buff_up[11] = (uint8_t)ifr.ifr_hwaddr.sa_data[5];
+      buff_up[4] = (uint8_t)gateway_id[0];
+      buff_up[5] = (uint8_t)gateway_id[1];
+      buff_up[6] = (uint8_t)gateway_id[2];
+      buff_up[7] = (uint8_t)gateway_id[3];
+      buff_up[8] = (uint8_t)gateway_id[4];
+      buff_up[9] = (uint8_t)gateway_id[5];
+      buff_up[10] = (uint8_t)gateway_id[6];
+      buff_up[11] = (uint8_t)gateway_id[7];
 
+      
       /* start composing datagram with the header */
       uint8_t token_h = (uint8_t)rand(); /* random token */
       uint8_t token_l = (uint8_t)rand(); /* random token */
@@ -645,6 +648,42 @@ bool Receivepacket()
   return ret;
 }
 
+uint8_t* hex_str_to_uint8(const char* string) {
+
+    if (string == NULL)
+        return NULL;
+
+    size_t slength = strlen(string);
+    if ((slength % 2) != 0) // must be even
+        return NULL;
+
+    size_t dlength = slength / 2;
+
+    uint8_t* data = (uint8_t*)malloc(dlength);
+
+    memset(data, 0, dlength);
+
+    size_t index = 0;
+    while (index < slength) {
+        char c = string[index];
+        int value = 0;
+        if (c >= '0' && c <= '9')
+            value = (c - '0');
+        else if (c >= 'A' && c <= 'F')
+            value = (10 + (c - 'A'));
+        else if (c >= 'a' && c <= 'f')
+            value = (10 + (c - 'a'));
+        else
+            return NULL;
+
+        data[(index / 2)] += value << (((index + 1) % 2) * 4);
+
+        index++;
+    }
+
+    return data;
+}
+
 int main()
 {
   struct timeval nowtime;
@@ -692,13 +731,24 @@ int main()
   ioctl(s, SIOCGIFHWADDR, &ifr);
 
   // ID based on MAC Adddress of eth0
-  printf( "Gateway ID: %.2x:%.2x:%.2x:ff:ff:%.2x:%.2x:%.2x\n",
-              (uint8_t)ifr.ifr_hwaddr.sa_data[0],
-              (uint8_t)ifr.ifr_hwaddr.sa_data[1],
-              (uint8_t)ifr.ifr_hwaddr.sa_data[2],
-              (uint8_t)ifr.ifr_hwaddr.sa_data[3],
-              (uint8_t)ifr.ifr_hwaddr.sa_data[4],
-              (uint8_t)ifr.ifr_hwaddr.sa_data[5]
+  // printf( "Gateway ID: %.2x:%.2x:%.2x:ff:ff:%.2x:%.2x:%.2x\n",
+  //             (uint8_t)ifr.ifr_hwaddr.sa_data[0],
+  //             (uint8_t)ifr.ifr_hwaddr.sa_data[1],
+  //             (uint8_t)ifr.ifr_hwaddr.sa_data[2],
+  //             (uint8_t)ifr.ifr_hwaddr.sa_data[3],
+  //             (uint8_t)ifr.ifr_hwaddr.sa_data[4],
+  //             (uint8_t)ifr.ifr_hwaddr.sa_data[5]
+  // );
+
+  printf( "Gateway ID: %.2x:%.2x:%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\n",
+              (uint8_t)gateway_id[0],
+              (uint8_t)gateway_id[1],
+              (uint8_t)gateway_id[2],
+              (uint8_t)gateway_id[3],
+              (uint8_t)gateway_id[4],
+              (uint8_t)gateway_id[5],
+              (uint8_t)gateway_id[6],
+              (uint8_t)gateway_id[7]
   );
 
   printf("Listening at SF%i on %.6lf Mhz.\n", sf,(double)freq/1000000);
@@ -719,7 +769,7 @@ int main()
 
     gettimeofday(&nowtime, NULL);
     uint32_t nowseconds = (uint32_t)(nowtime.tv_sec);
-    if (nowseconds - lasttime >= 30) {
+    if (nowseconds - lasttime >= 1200) {
       lasttime = nowseconds;
       SendStat();
       cp_nb_rx_rcv = 0;
@@ -790,7 +840,7 @@ void LoadConfiguration(string configurationFile)
           } else if (memberType.compare("ref_longitude") == 0) {
             lon = confIt->value.GetDouble();
           } else if (memberType.compare("ref_altitude") == 0) {
-            alt = confIt->value.GetUint(); 
+            alt = confIt->value.GetUint();
 
           } else if (memberType.compare("name") == 0 && confIt->value.IsString()) {
             string str = confIt->value.GetString();
@@ -801,6 +851,15 @@ void LoadConfiguration(string configurationFile)
           } else if (memberType.compare("desc") == 0 && confIt->value.IsString()) {
             string str = confIt->value.GetString();
             strcpy(description, str.length()<=64 ? str.c_str() : "description is too long");
+
+          //Get Gateway ID 
+          } else if (memberType.compare("gateway_id") == 0 && confIt->value.IsString()) {
+            //string arr = confIt->value.GetArray();
+            //strcpy(gateway_id, ;
+            //for (SizeType i = 0; i < confIt->value.Size(); i++) {
+              memcpy( gateway_id, hex_str_to_uint8(confIt->value.GetString()), 8 );
+            //  confIt->value[i].GetString()
+            //}
 
           } else if (memberType.compare("servers") == 0) {
             const Value& serverConf = confIt->value;
