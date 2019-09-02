@@ -6,7 +6,8 @@ Changes include:
 - Adding the ability to add your own gateway EUI instead of relying on the eth0 MAC address.
 - *Note stat packets have been reduced to send every 20 minutes instead of 30 seconds.
 
-==============================
+Original README
+------------------
 This repository contains a proof-of-concept implementation of a single
 channel LoRaWAN gateway.
 
